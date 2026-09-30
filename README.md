@@ -14,9 +14,10 @@ sur Vercel en quelques minutes.
 | Écran | Ce qu'on y fait |
 |---|---|
 | **Kalender** | Le prochain match/entraînement en grand : heure, heure de rendez-vous, adresse, **bouton Route** (Google Maps) et **bouton Agenda**. La météo du jour du match s'affiche automatiquement (Open-Meteo, sans clé). |
-| **Détail d'un match** | Se désinscrire en un tap (« Kan niet ») avec une raison facultative, voir qui est là, la sélection, la corvée fruits/lavage, le covoiturage et le résultat. |
+| **Détail d'un match** | Se désinscrire en un tap (« Kan niet ») avec une raison facultative, voir qui est là, la sélection, la corvée sandwichs/lavage (sandwichs seulement à domicile, à Sterrebeek), le covoiturage et le résultat. |
 | **Ploeg** | Chaque parent choisit son enfant une fois (stocké sur le téléphone) ; ensuite les boutons d'absence sont partout. On peut donner un « pluim » (bravo) par jour à un joueur. |
-| **Klassement** | Buts, assists, joueur du match, présence, pluims. |
+| **Posities** | Le terrain à 8 (gardien + 1-3-3-1) avec les postes habituels de chaque joueur (le premier = poste préféré). |
+| **Klassement** | Buts, assists, temps de jeu (en quarts-temps), présence, pluims. |
 | **Prikbord** | Les messages des entraîneurs + les infos pratiques. |
 
 **Tout le monde est présent par défaut** — on ne signale que les absences.
@@ -46,10 +47,13 @@ Roue dentée en haut à droite → **code PIN**. Par défaut **`1933`**
   de la sélection (heure, lieu, liste).
 - **Résultat** : score, puis « Doelpunt toevoegen » → on tape le buteur, puis le
   passeur (ou « pas d'assist ». Confettis inclus).
-- **Speler van de match** ⭐ et un petit mot du coach.
+- **Speeltijd** : par match, cocher les quarts-temps (K1–K4) joués par chaque joueur ;
+  le compteur par quart vérifie qu'il y a bien 8 joueurs sur le terrain.
+- **Posities** : modifier les postes habituels de chaque joueur.
+- Un petit mot du coach après le match.
 - **Marquer aan/afwezig** n'importe quel joueur (si un parent oublie).
 - **Annuler** un entraînement ou un match, avec un message.
-- **Beurtrol** : qui apporte les fruits, qui lave les maillots — réparti
+- **Beurtrol** : qui apporte les sandwichs (matchs à domicile uniquement), qui lave les maillots — réparti
   automatiquement par rotation, modifiable.
 - **Gérer les joueurs** (ajout, numéro, suppression) et **ajouter une date**
   (match amical, fête de Noël, entraînement supplémentaire).
@@ -124,13 +128,14 @@ Ensuite : partager le lien dans le groupe WhatsApp des parents, avec la consigne
 ```
 app/
   layout.jsx              → police, métadonnées, manifest
-  page.jsx                → coquille : en-tête, 4 onglets, feuilles modales
+  page.jsx                → coquille : en-tête, 5 onglets, feuilles modales
   globals.css             → tokens de design (marine #333366 / jaune #dddd00)
   components/
     ui.jsx                → Card, Button, Sheet, avatars, confettis, toasts
     AgendaTab.jsx         → prochain rendez-vous + liste
     EventSheet.jsx        → tout le détail d'un match/entraînement
     TeamTab.jsx           → effectif, choix de son enfant, pluims
+    PositionsTab.jsx      → terrain à 8 et postes habituels
     StatsTab.jsx          → classements
     BoardTab.jsx          → prikbord + infos pratiques
     PlayerSheet.jsx       → la saison d'un joueur

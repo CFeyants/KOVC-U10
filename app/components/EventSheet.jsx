@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  MapPin, Clock, Users, Trophy, Apple, Shirt, Car, Share2, Plus, Trash2,
-  Star, CircleSlash, Undo2, ClipboardList, MessageCircle,
+  MapPin, Clock, Users, Trophy, Shirt, Car, Share2, Plus, Trash2,
+  CircleSlash, Undo2, ClipboardList, MessageCircle, Sandwich, Timer,
 } from "lucide-react";
 import {
   Button, Card, PlayerAvatar, Sheet, SectionTitle, Badge, inputClass, cx,
@@ -11,7 +11,9 @@ import {
 import { AddToCalendarSheet } from "./AddToCalendar";
 import { directionsUrl } from "@/lib/calendar";
 import { formatLong, relativeDay, todayISO } from "@/lib/format";
-import { absentIds, dutiesFor, playerName, resultLabel } from "@/lib/model";
+import {
+  absentIds, dutiesFor, needsSandwiches, playerName, resultLabel, QUARTERS, ON_FIELD,
+} from "@/lib/model";
 
 /* ============================================================
    Alles over één wedstrijd of training, op één scherm:
@@ -118,6 +120,7 @@ export default function EventSheet({
         <WhenAndWhere event={event} onCalendar={() => setCalendarOpen(true)} />
 
         {played ? <ResultBlock {...{ event, state, update, coach, celebrate, showToast }} /> : null}
+        {played ? <PlaytimeBlock {...{ event, state, update, coach }} /> : null}
 
         <MyChildren
           players={state.players.filter((p) => myPlayers.includes(p.id))}
@@ -174,7 +177,10 @@ export default function EventSheet({
         ) : null}
 
         {isMatch && !played ? (
-          <ResultBlock {...{ event, state, update, coach, celebrate, showToast }} />
+          <>
+            <ResultBlock {...{ event, state, update, coach, celebrate, showToast }} />
+            <PlaytimeBlock {...{ event, state, update, coach }} />
+          </>
         ) : null}
 
         {isMatch ? <DutiesBlock {...{ event, state, update, coach }} /> : null}
@@ -384,7 +390,7 @@ function SelectionBlock({
   );
 }
 
-/* ---------- Beurtrol: fruit en shirts ---------- */
+/* ---------- Beurtrol: broodjes en shirts ---------- */
 
 function DutiesBlock({ event, state, update, coach }) {
   const duties = dutiesFor(state, event.id);
@@ -392,18 +398,20 @@ function DutiesBlock({ event, state, update, coach }) {
   const setDuty = (key, value) => {
     update((s) => ({
       ...s,
-      duties: { ...s.duties, [event.id]: { ...dutiesFor(s, event.id), [key]: value, auto: undefined } },
+      duties: { ...s.duties, [event.id]: { ...(s.duties[event.id] ?? {}), [key]: value } },
     }));
   };
 
   const rows = [
-    { key: "fruit", icon: Apple, label: "Fruit bij de rust", id: duties.fruit },
+    needsSandwiches(event)
+      ? { key: "sandwich", icon: Sandwich, label: "Broodjes (thuismatch in Sterrebeek)", id: duties.sandwich }
+      : null,
     { key: "wash", icon: Shirt, label: "Shirts wassen", id: duties.wash },
-  ];
+  ].filter(Boolean);
 
   return (
     <>
-      <SectionTitle icon={Apple}>Beurtrol</SectionTitle>
+      <SectionTitle icon={Shirt}>Beurtrol</SectionTitle>
       <Card className="divide-y divide-ink-700/50">
         {rows.map(({ key, icon: Icon, label, id }) => (
           <div key={key} className="flex items-center gap-3 p-3">
@@ -563,7 +571,7 @@ function CarpoolBlock({ event, state, update, showToast }) {
 
 function ResultBlock({ event, state, update, coach, celebrate, showToast }) {
   const stored = state.results[event.id] ?? null;
-  const result = stored ?? { us: "", them: "", goals: [], motm: null, note: "" };
+  const result = stored ?? { us: "", them: "", goals: [], note: "" };
   const label = resultLabel(event, stored);
   const [composer, setComposer] = useState(null); // null | {scorer}
 
@@ -689,33 +697,6 @@ function ResultBlock({ event, state, update, coach, celebrate, showToast }) {
           ) : null}
         </div>
 
-        {/* Speler van de match */}
-        <div className="mt-4 border-t border-ink-700/50 pt-3">
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
-            <Star size={13} className="text-club" /> Speler van de match
-          </p>
-          {coach ? (
-            <select
-              value={result.motm ?? ""}
-              onChange={(e) => patch({ motm: e.target.value || null })}
-              className="h-11 w-full rounded-xl border border-ink-700/70 bg-ink-800 px-3"
-            >
-              <option value="">— nog niet gekozen —</option>
-              {state.players.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          ) : result.motm ? (
-            <div className="flex items-center gap-2.5">
-              <PlayerAvatar name={playerName(state, result.motm)} size={36} />
-              <p className="font-semibold">{playerName(state, result.motm)}</p>
-              <span className="text-lg">⭐</span>
-            </div>
-          ) : (
-            <p className="text-sm text-muted">Nog niet gekozen.</p>
-          )}
-        </div>
-
         {coach || result.note ? (
           <div className="mt-4 border-t border-ink-700/50 pt-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">
@@ -732,6 +713,114 @@ function ResultBlock({ event, state, update, coach, celebrate, showToast }) {
               <p className="text-sm">{result.note}</p>
             )}
           </div>
+        ) : null}
+      </Card>
+    </>
+  );
+}
+
+/* ---------- Speeltijd per kwart ---------- */
+
+function PlaytimeBlock({ event, state, update, coach }) {
+  const playtime = state.playtime[event.id] ?? {};
+  const hasData = Object.values(playtime).some((qs) => qs?.length);
+
+  // Wie in de selectie zit (of anders aanwezig is), plus wie al kwarten heeft.
+  const rows = useMemo(() => {
+    const selection = state.selections[event.id];
+    const absent = new Set(absentIds(state, event.id));
+    return state.players.filter((p) =>
+      (playtime[p.id]?.length ?? 0) > 0 ||
+      (selection?.length ? selection.includes(p.id) : !absent.has(p.id))
+    );
+  }, [state, event.id, playtime]);
+
+  if (!coach && !hasData) return null;
+
+  const setQuarters = (playerId, qs) => {
+    update((s) => {
+      const forMatch = { ...(s.playtime[event.id] ?? {}) };
+      if (qs.length) forMatch[playerId] = [...qs].sort();
+      else delete forMatch[playerId];
+      return { ...s, playtime: { ...s.playtime, [event.id]: forMatch } };
+    });
+  };
+
+  const toggle = (playerId, q) => {
+    const current = playtime[playerId] ?? [];
+    setQuarters(playerId, current.includes(q) ? current.filter((x) => x !== q) : [...current, q]);
+  };
+
+  const toggleAll = (playerId) => {
+    const current = playtime[playerId] ?? [];
+    setQuarters(playerId, current.length === QUARTERS.length ? [] : QUARTERS);
+  };
+
+  const perQuarter = QUARTERS.map(
+    (q) => Object.values(playtime).filter((qs) => qs?.includes(q)).length
+  );
+
+  const visible = coach ? rows : rows.filter((p) => (playtime[p.id]?.length ?? 0) > 0);
+
+  return (
+    <>
+      <SectionTitle icon={Timer}>Speeltijd per kwart</SectionTitle>
+      <Card className="p-3">
+        <div className="mb-1.5 flex items-center gap-2 px-1">
+          <span className="flex-1 text-xs text-muted">{coach ? "Tik = speelde dat kwart" : "Speler"}</span>
+          {QUARTERS.map((q, i) => (
+            <span key={q} className="w-9 text-center text-[0.68rem] leading-tight">
+              <span className="block font-semibold text-muted">K{q}</span>
+              <span className={cx(
+                "tabular-nums",
+                perQuarter[i] === ON_FIELD ? "text-win" : perQuarter[i] > ON_FIELD ? "text-loss" : "text-muted"
+              )}>
+                {perQuarter[i]}/{ON_FIELD}
+              </span>
+            </span>
+          ))}
+          <span className="w-8 text-right text-[0.68rem] font-semibold text-muted">tot.</span>
+        </div>
+
+        <div className="space-y-1">
+          {visible.map((p) => {
+            const qs = playtime[p.id] ?? [];
+            return (
+              <div key={p.id} className="flex items-center gap-2 rounded-xl px-1 py-1">
+                <button
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  onClick={coach ? () => toggleAll(p.id) : undefined}
+                  disabled={!coach}
+                  aria-label={coach ? `Alle kwarten voor ${p.name}` : undefined}
+                >
+                  <PlayerAvatar name={p.name} size={28} dimmed={!qs.length} />
+                  <span className={cx("truncate text-sm", !qs.length && "text-muted")}>{p.name}</span>
+                </button>
+                {QUARTERS.map((q) => {
+                  const on = qs.includes(q);
+                  const cls = cx(
+                    "flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-semibold transition-colors",
+                    on ? "border-club bg-club text-ink-950" : "border-ink-700/70 bg-ink-800/50 text-muted"
+                  );
+                  return coach ? (
+                    <button key={q} className={cls} onClick={() => toggle(p.id, q)} aria-pressed={on}
+                      aria-label={`${p.name} kwart ${q}`}>
+                      {on ? "✓" : ""}
+                    </button>
+                  ) : (
+                    <span key={q} className={cls}>{on ? "✓" : ""}</span>
+                  );
+                })}
+                <span className="w-8 text-right text-sm font-semibold tabular-nums">{qs.length}/4</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {coach ? (
+          <p className="px-1 pt-2 text-xs text-muted">
+            Tik op een naam om alle vier de kwarten aan of uit te zetten. Er staan {ON_FIELD} spelers op het veld.
+          </p>
         ) : null}
       </Card>
     </>

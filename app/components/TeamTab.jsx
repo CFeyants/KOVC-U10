@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { UserPlus, Trash2, Check, Star, Goal, Handshake, Users, Pencil } from "lucide-react";
+import { UserPlus, Trash2, Check, Timer, Goal, Handshake, Users, Pencil } from "lucide-react";
 import {
   Button, Card, PlayerAvatar, SectionTitle, Sheet, inputClass, cx,
 } from "./ui";
@@ -116,7 +116,7 @@ export default function TeamTab({
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
                   <span className="inline-flex items-center gap-1"><Goal size={12} /> {p.goals}</span>
                   <span className="inline-flex items-center gap-1"><Handshake size={12} /> {p.assists}</span>
-                  {p.motm ? <span className="inline-flex items-center gap-1 text-club"><Star size={12} /> {p.motm}</span> : null}
+                  {p.quarters ? <span className="inline-flex items-center gap-1"><Timer size={12} /> {p.quarters} kw.</span> : null}
                   {p.presenceRate != null ? <span>{p.presenceRate}% aanwezig</span> : null}
                 </p>
               </div>

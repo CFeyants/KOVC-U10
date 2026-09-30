@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
-  CalendarDays, Users, Trophy, Megaphone, Settings, CloudOff, RefreshCw, Loader2,
+  CalendarDays, Users, Trophy, Megaphone, Settings, CloudOff, RefreshCw, Loader2, LayoutGrid,
 } from "lucide-react";
 import { Button, Card, Skeleton, Toast, useToast, Confetti, cx } from "./components/ui";
 import AgendaTab from "./components/AgendaTab";
 import TeamTab, { PlayerPicker } from "./components/TeamTab";
 import StatsTab from "./components/StatsTab";
 import BoardTab from "./components/BoardTab";
+import PositionsTab from "./components/PositionsTab";
 import EventSheet from "./components/EventSheet";
 import PlayerSheet from "./components/PlayerSheet";
 import CoachPanel from "./components/CoachPanel";
@@ -18,13 +19,14 @@ import { buildEvents, playerStats } from "@/lib/model";
 import { CLUB } from "@/lib/seed";
 
 /* ============================================================
-   De app zelf: één scherm met vier tabbladen, gemaakt om met
+   De app zelf: één scherm met vijf tabbladen, gemaakt om met
    één duim te bedienen terwijl je langs het veld staat.
    ============================================================ */
 
 const TABS = [
   { key: "agenda", label: "Kalender", icon: CalendarDays },
   { key: "team", label: "Ploeg", icon: Users },
+  { key: "positions", label: "Posities", icon: LayoutGrid },
   { key: "stats", label: "Klassement", icon: Trophy },
   { key: "board", label: "Prikbord", icon: Megaphone },
 ];
@@ -90,6 +92,10 @@ export default function Page() {
                 showToast={showToast}
                 onOpenPlayer={setOpenPlayerId}
               />
+            ) : null}
+
+            {tab === "positions" ? (
+              <PositionsTab state={state} update={update} coach={coach} showToast={showToast} />
             ) : null}
 
             {tab === "stats" ? <StatsTab state={state} stats={stats} events={events} /> : null}

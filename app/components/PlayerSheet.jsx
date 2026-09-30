@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { Goal, Handshake, Star, ShieldCheck } from "lucide-react";
+import { Goal, Handshake, Timer, ShieldCheck } from "lucide-react";
 import { Sheet, Card, PlayerAvatar, SectionTitle, Badge } from "./ui";
 import { formatShort } from "@/lib/format";
-import { playerName, resultLabel } from "@/lib/model";
+import { resultLabel } from "@/lib/model";
 
 /* ============================================================
    Het seizoen van één speler: cijfers, doelpunten en afwezigheden.
@@ -19,15 +19,14 @@ export default function PlayerSheet({ playerId, state, stats, events, open, onCl
     for (const ev of events) {
       if (ev.type !== "match") continue;
       const result = state.results[ev.id];
-      if (!result) continue;
-      const goals = (result.goals ?? []).filter((g) => g.playerId === playerId).length;
-      const assists = (result.goals ?? []).filter((g) => g.assistId === playerId).length;
-      const motm = result.motm === playerId;
-      if (!goals && !assists && !motm) continue;
-      rows.push({ ev, goals, assists, motm, score: resultLabel(ev, result) });
+      const quarters = state.playtime[ev.id]?.[playerId]?.length ?? 0;
+      const goals = (result?.goals ?? []).filter((g) => g.playerId === playerId).length;
+      const assists = (result?.goals ?? []).filter((g) => g.assistId === playerId).length;
+      if (!goals && !assists && !quarters) continue;
+      rows.push({ ev, goals, assists, quarters, score: resultLabel(ev, result) });
     }
     return rows.reverse();
-  }, [playerId, events, state.results]);
+  }, [playerId, events, state.results, state.playtime]);
 
   const missed = useMemo(() => {
     if (!playerId) return [];
@@ -54,7 +53,7 @@ export default function PlayerSheet({ playerId, state, stats, events, open, onCl
         <div className="grid flex-1 grid-cols-4 gap-2 text-center">
           <Metric icon={Goal} value={player.goals} label="goals" />
           <Metric icon={Handshake} value={player.assists} label="assists" />
-          <Metric icon={Star} value={player.motm} label="ster" />
+          <Metric icon={Timer} value={player.quarters} label="kwarten" />
           <Metric icon={ShieldCheck} value={player.presenceRate != null ? `${player.presenceRate}%` : "—"} label="present" />
         </div>
       </Card>
@@ -70,7 +69,7 @@ export default function PlayerSheet({ playerId, state, stats, events, open, onCl
       <SectionTitle icon={Goal}>Momenten</SectionTitle>
       {timeline.length ? (
         <Card className="divide-y divide-ink-700/40">
-          {timeline.map(({ ev, goals, assists, motm, score }) => (
+          {timeline.map(({ ev, goals, assists, quarters, score }) => (
             <div key={ev.id} className="flex items-center gap-3 p-3">
               <span className="w-16 shrink-0 text-xs text-muted">{formatShort(ev.date)}</span>
               <div className="min-w-0 flex-1">
@@ -78,7 +77,7 @@ export default function PlayerSheet({ playerId, state, stats, events, open, onCl
                 <p className="flex flex-wrap gap-x-2 text-xs text-muted">
                   {goals ? <span>⚽ {goals}</span> : null}
                   {assists ? <span>🅰️ {assists}</span> : null}
-                  {motm ? <span className="text-club">⭐ speler van de match</span> : null}
+                  {quarters ? <span>⏱ {quarters}/4 kwarten</span> : null}
                 </p>
               </div>
               {score ? (
@@ -91,7 +90,7 @@ export default function PlayerSheet({ playerId, state, stats, events, open, onCl
         </Card>
       ) : (
         <Card className="p-4 text-sm text-muted">
-          Nog geen doelpunten of sterren dit seizoen — dat komt nog.
+          Nog geen doelpunten of speeltijd dit seizoen — dat komt nog.
         </Card>
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Goal, Handshake, Star, ShieldCheck, Trophy, Sparkles } from "lucide-react";
+import { Goal, Handshake, Timer, ShieldCheck, Trophy, Sparkles } from "lucide-react";
 import { Card, PlayerAvatar, EmptyState, cx } from "./ui";
 import { seasonRecord } from "@/lib/model";
 
@@ -14,7 +14,7 @@ import { seasonRecord } from "@/lib/model";
 const BOARDS = [
   { key: "goals", label: "Doelpunten", icon: Goal, unit: "goals", empty: "Nog geen doelpunt gescoord." },
   { key: "assists", label: "Assists", icon: Handshake, unit: "assists", empty: "Nog geen assist gegeven." },
-  { key: "motm", label: "Speler van de match", icon: Star, unit: "×", empty: "Nog niemand verkozen." },
+  { key: "quarters", label: "Speeltijd", icon: Timer, unit: "kw", empty: "Nog geen speeltijd ingevuld." },
   { key: "presenceRate", label: "Altijd present", icon: ShieldCheck, unit: "%", empty: "Nog niets gespeeld." },
   { key: "cheers", label: "Pluimen", icon: Sparkles, unit: "👏", empty: "Geef de eerste pluim bij Ploeg." },
 ];
@@ -95,7 +95,7 @@ export default function StatsTab({ state, stats, events }) {
               <p className="text-3xl font-bold text-club">
                 {top.value}
                 <span className="ml-0.5 text-sm font-normal text-muted">
-                  {active.unit === "%" ? "%" : ""}
+                  {active.unit === "%" ? "%" : active.unit === "kw" ? "kwarten" : ""}
                 </span>
               </p>
             </Card>
@@ -113,6 +113,9 @@ export default function StatsTab({ state, stats, events }) {
                 </span>
                 <span className={cx("font-semibold tabular-nums", p.value > 0 ? "text-cream" : "text-muted")}>
                   {p.value}{active.unit === "%" ? "%" : ""}
+                  {active.unit === "kw" && p.matchesPlayed ? (
+                    <span className="ml-1 text-xs font-normal text-muted">({p.matchesPlayed} m.)</span>
+                  ) : null}
                 </span>
               </div>
             ))}
